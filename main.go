@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
@@ -31,16 +32,6 @@ func LoadConfigFile(fn string) (Config, error) {
 	return c, nil
 }
 
-type SpotifyTracksResponse struct {
-	Href     string
-	Next     string
-	Previous string
-	Limit    int
-	Offset   int
-	Total    int
-	Items    []SpotifyTrack
-}
-
 func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	conf, err := LoadConfigFile("config.toml")
@@ -56,12 +47,13 @@ func main() {
 		ClientSecret: conf.Secret,
 		Scopes:       []string{"user-library-read"},
 		Endpoint:     spotify.Endpoint,
+		RedirectURL:  "https://likedumper.ndumas.com/callback",
 	}
 
 	verifier := oauth2.GenerateVerifier()
 
 	url := oauthConf.AuthCodeURL("state", oauth2.AccessTypeOffline, oauth2.S256ChallengeOption(verifier))
-	fmt.Printf("Visit the URL for the auth dialog: %q\n", url)
+	fmt.Printf("Visit the URL for the auth dialog: %v\n", url)
 
 	var code string
 	if _, err := fmt.Scan(&code); err != nil {
@@ -75,12 +67,20 @@ func main() {
 		return
 	}
 	client := oauthConf.Client(ctx, tok)
+
+	// here is where i need to start handling pagination
 	resp, err := client.Get("https://api.spotify.com/v1/me/tracks")
 	if err != nil {
 		logger.Error("unable to fetch Tracks")
 		return
 	}
 
+	var tracks SpotifyTracksResponse
 	dec := json.NewDecoder(resp.Body)
+	err = dec.Decode(&tracks)
+	if err != nil {
+		logger.Error("couldn't decode Spotify response")
+		return
+	}
 
 }
