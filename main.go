@@ -39,8 +39,6 @@ func main() {
 		logger.With("error", err).Error("error loading config file")
 	}
 
-	fmt.Printf("%#+v\n", conf)
-
 	ctx := context.Background()
 	oauthConf := &oauth2.Config{
 		ClientID:     conf.ID,
@@ -81,6 +79,10 @@ func main() {
 	if err != nil {
 		logger.Error("couldn't decode Spotify response")
 		return
+	}
+
+	for _, item := range tracks.Items {
+		fmt.Printf("%v - %v\n", item.Track.Artists[0].Name, item.Track.Name)
 	}
 
 }
