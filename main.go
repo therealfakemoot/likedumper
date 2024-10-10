@@ -1,7 +1,10 @@
 package main
 
 import (
+	"encoding/csv"
+	"flag"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 
@@ -28,7 +31,29 @@ func LoadConfigFile(fn string) (Config, error) {
 	return c, nil
 }
 
+func WriteCSV(w io.Writer, tracks []SpotifyTrack) error {
+	enc := csv.NewWriter(w)
+	defer enc.Flush()
+
+	enc.Write([]string{"Title", "Album", "Artist"})
+	for _, track := range tracks {
+		enc.Write([]string{
+			track.Name,
+			track.Album.Name,
+			track.Artists[0].Name,
+		})
+	}
+
+	return nil
+}
+
 func main() {
+	var outFile string
+
+	flag.StringVar(&outFile, "dest", "tracks.csv", "Destination CSV file")
+
+	flag.Parse()
+
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	conf, err := LoadConfigFile("config.toml")
 	if err != nil {
@@ -39,5 +64,16 @@ func main() {
 	if err != nil {
 		logger.With("error", err).Error("error fetching tracks")
 	}
-	fmt.Printf("track count: %d\n", len(tracks))
+
+	f, err := os.Create(outFile)
+	if err != nil {
+		logger.With("error", err).Error("could not create destination file")
+		os.Exit(1)
+	}
+
+	err = WriteCSV(f, tracks)
+	if err != nil {
+		logger.With("error", err).Error("could not write destination file")
+		os.Exit(2)
+	}
 }
