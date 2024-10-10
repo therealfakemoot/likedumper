@@ -27,6 +27,7 @@ func ListLikedTracks(conf Config) ([]SpotifyTrack, error) {
 	fmt.Printf("Visit the URL for the auth dialog: %v\n", url)
 
 	var code string
+	fmt.Printf("Paste the auth code from Spotify here: ")
 	if _, err := fmt.Scan(&code); err != nil {
 		return tracks, fmt.Errorf("did not receive valid auth code: %w", err)
 	}
